@@ -1,0 +1,4 @@
+Fiona==1.8.21
+geopandas==0.14.2
+humanize==4.9.0
+pandas==2.2.1
