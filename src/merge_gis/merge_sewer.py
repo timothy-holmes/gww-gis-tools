@@ -340,7 +340,6 @@ def run():
 
     func_list = [merge, make_corrections, classify_parcels, save_output]
     outpaths = reduce(lambda o, func: func(o), func_list, output)
-    reduce(lambda g, t: g.add_edges(*t), tuples, Graph())
     print(humanize.naturaldelta(time.time() - timekeeper.start_time))
 
     return outpaths

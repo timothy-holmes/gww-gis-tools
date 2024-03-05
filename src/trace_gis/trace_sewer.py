@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Callable
+from typing import Callable, Union
 import inspect
 import json
 
@@ -78,7 +78,7 @@ class Trace:
     Methods:
     - trace(first_node): Traces a path through the graph starting from the first node.
     """
-    def __init__(self, graph, stop_node: Callable | None = None):
+    def __init__(self, graph, stop_node: Union[Callable, None] = None):
         self.graph = graph
         self.stop_node = stop_node or (lambda x: True)
 
