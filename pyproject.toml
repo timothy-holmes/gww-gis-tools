@@ -1,18 +1,23 @@
 [tool.poetry]
-name = "merge_gis"
-version = "0.1.0"
+name = "gww-gis-tools"
+version = "0.2.0"
 description = ""
 authors = ["Timothy Holmes <tim.a.holmes@gmail.com>"]
 packages = [
-    {include = "merge_gis", from = "src"},
-    {include = "trace_gis", from = "src"}
+    {include = "gww_gis_tools", from = "src"}
 ]
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pandas = "^2.0.1"
+geopandas = {'version' = '^2.2.1', 'optional' = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+
+[tool.poetry.extras]
+geopandas = ["fiona", "geopandas"]
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
