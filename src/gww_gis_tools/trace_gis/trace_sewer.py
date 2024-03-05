@@ -28,21 +28,25 @@ class Graph:
     """
 
     def __init__(self, direction: DIRECTION):
+        """Specify direction on initialisation"""
         self.direction = direction
         self.nodes = defaultdict(list)
         self.pipes = defaultdict(list)
 
-    def from_gdf(self, links): # links should have type geopandas.GeoDataFrame
+    def from_gdf(self, links):
+        """Takes a (Geo)DataFrame and add each row as an edge. Returns graph object."""
         for f in links.itertuples(index=False):
             self.add_edge(f.START_NODE, f.END_NODE, f.PIPE_ID)
         return self
 
     def from_dicts(self, links: list[dict]):
+        """Takes a list of dictionaries and add each row as an edge. Returns graph object."""
         for f in links:
             self.add_edge(f['START_NODE'], f['END_NODE'], f['PIPE_ID'])
         return self
 
     def add_edge(self, start_node, end_node, pipe_id):
+        """Add field values for a single feature as an edge. Returns graph object."""
         if self.direction == DIRECTION.U:
                 self.nodes[end_node].append(start_node)
                 self.pipes[end_node].append(pipe_id)
@@ -83,6 +87,7 @@ class Trace:
         self.stop_node = stop_node or (lambda x: True)
 
     def trace(self, first_node):
+        """Tranverses graph object (depth-first) and returns a TraceResult containing nodes and pipes visited, and end of path nodes."""
         nodes = self.graph.nodes
         pipes = self.graph.pipes
 

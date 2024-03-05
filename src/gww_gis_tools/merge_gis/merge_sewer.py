@@ -1,6 +1,6 @@
 import tempfile
 import time
-from typing import Any
+from typing import Any, Union
 from functools import reduce
 import os.path
 
@@ -8,6 +8,88 @@ import fiona
 import humanize
 import pandas as pd
 import geopandas as gpd
+
+
+class AssetType:
+    """ Enum-like class to prevent typos """
+    PARCELS = 'parcels'
+    PIPES = 'pipes'
+    BRANCHES = 'branches'
+    NODES = 'nodes'
+
+
+class Config:
+    # files = {
+    #     AssetType.PARCELS: [
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Cadastre\\Parcels.tab",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Cadastre\\SP_PROPERTY.shp"
+    #     ],
+    #     AssetType.PIPES: [
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWGPIPE.shp",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWVPIPE.shp",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWRPIPE.shp",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Pipe.TAB",
+    #     ],
+    #     AssetType.BRANCHES: [
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWSERV.shp",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Branch.tab",
+    #     ],
+    #     AssetType.NODES: [
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWNODE.shp",
+    #         "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Node.tab",
+    #     ]
+    # }
+
+    files = {
+        AssetType.PARCELS: [
+            "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Cadastre\\Parcels.tab",
+            "\\\\wro-gisapp\\MunsysExport\\SP_PROPERTY.shp"
+        ],
+        AssetType.PIPES: [
+            "\\\\wro-gisapp\\MunsysExport\\SP_SEWGPIPE.shp",
+            "\\\\wro-gisapp\\MunsysExport\\SP_SEWVPIPE.shp",
+            "\\\\wro-gisapp\\MunsysExport\\SP_SEWRPIPE.shp",
+            "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Pipe.TAB",
+        ],
+        AssetType.BRANCHES: [
+            "\\\\wro-gisapp\\MunsysExport\\SP_SEWSERV.shp",
+            "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Branch.tab",
+        ],
+        AssetType.NODES: [
+            "\\\\wro-gisapp\\MunsysExport\\SP_SEWNODE.shp",
+            "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Node.tab",
+        ]
+    }
+
+    output_template = r'C:\Users\holmest1\Greater Western Water\IP - Spatial - Documents\Input\2. GWW GIS Exports\Existing Assets\Merged Regions\Sewer\GWW_{id}.tab'
+
+    asset_uids = {
+        'END_NODE', 'START_NODE', 'PIPE_ID', 'GID', # pipes
+        'NODE_ID', 'GID',                           # nodes
+        'GID', 'SERV_ID'                            # branches
+        'GID', 'PRCL_GID', 'PROP_GID',              # parcels
+    }
+
+    column_map = {
+        'ECOVELEV': 'END_COVELEV', 
+        'SCOVELEV': 'START_COVELEV', 
+        'E_INVELEV': 'END_INVELEV', 
+        'S_INVELEV': 'START_INVELEV', 
+        'GEOMLENGTH': 'GEOM_LENGTH', 
+        'NODECOVELE': 'NODE_COVELEV'
+    }
+
+    @staticmethod
+    def possible_outpaths(config):
+        possible_ids = list(config.files.keys()) + ['parcels_unserved', 'parcels']
+
+        outpaths = {
+            id: os.path.getmtime(config.output_template.format(id=id))
+            for id in possible_ids
+            if os.path.exists(config.output_template.format(id=id))
+        }
+
+        return outpaths
 
 
 class Region:
@@ -34,10 +116,10 @@ class TimeKeeper:
 
 class DataFileHelpers:
     @staticmethod
-    def get_filepaths(asset_type: str, region: str):
+    def get_filepaths(config: Config, asset_type: str, region: str):
         return [
             f 
-            for f in Config.files[asset_type] 
+            for f in config.files[asset_type] 
             if (region.FULL in f) or (region.SERVER in f)
         ]
 
@@ -90,76 +172,6 @@ class DataFileHelpers:
                 print(f'Unhandled error {args}, {kwargs}: {e.args}')
 
 
-class AssetType:
-    """ Enum-like class to prevent typos """
-    PARCELS = 'parcels'
-    PIPES = 'pipes'
-    BRANCHES = 'branches'
-    NODES = 'nodes'
-
-
-class Config:
-    files = {
-        AssetType.PARCELS: [
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Cadastre\\Parcels.tab",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Cadastre\\SP_PROPERTY.shp"
-        ],
-        AssetType.PIPES: [
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWGPIPE.shp",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWVPIPE.shp",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWRPIPE.shp",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Pipe.TAB",
-        ],
-        AssetType.BRANCHES: [
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWSERV.shp",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Branch.tab",
-        ],
-        AssetType.NODES: [
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Western Region\\Sewer\\SP_SEWNODE.shp",
-            "C:\\Users\\holmest1\\Greater Western Water\\IP - Spatial - Documents\\Input\\2. GWW GIS Exports\\Existing Assets\\Central Region\\Sewer\\Sewer_Node.tab",
-        ]
-    }
-
-    # files = {
-    #     AssetType.PARCELS: [
-    #         "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Cadastre\\Parcels.tab",
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_PROPERTY.shp"
-    #     ],
-    #     AssetType.PIPES: [
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_SEWGPIPE.shp",
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_SEWVPIPE.shp",
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_SEWRPIPE.shp",
-    #         "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Pipe.TAB",
-    #     ],
-    #     AssetType.BRANCHES: [
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_SEWSERV.shp",
-    #         "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Branch.tab",
-    #     ],
-    #     AssetType.NODES: [
-    #         "\\\\wro-gisapp\\MunsysExport\\SP_SEWNODE.shp",
-    #         "\\\\citywestwater.com.au\\data\\pccommon\\Asset Information\\MUNSYS MapInfo Data\\Production\\Data\\Sewer\\Sewer_Node.tab",
-    #     ]
-    # }
-
-    output_template = r'C:\Users\holmest1\Greater Western Water\IP - Spatial - Documents\Input\2. GWW GIS Exports\Existing Assets\Merged Regions\Sewer\GWW_{id}.tab'
-
-    asset_uids = {
-        'END_NODE', 'START_NODE', 'PIPE_ID', 'GID', # pipes
-        'NODE_ID', 'GID',                           # nodes
-        'GID', 'SERV_ID'                            # branches
-        'GID', 'PRCL_GID', 'PROP_GID',              # parcels
-    }
-
-    column_map = {
-        'ECOVELEV': 'END_COVELEV', 
-        'SCOVELEV': 'START_COVELEV', 
-        'E_INVELEV': 'END_INVELEV', 
-        'S_INVELEV': 'START_INVELEV', 
-        'GEOMLENGTH': 'GEOM_LENGTH', 
-        'NODECOVELE': 'NODE_COVELEV'
-    }
-
-
 class FieldsHelpers:
     @staticmethod
     def intersect(x,y): 
@@ -205,8 +217,8 @@ class Corrections:
         return row
 
 
-def merge(output: NotifyDict | dict):
-    for a in Config.files.keys():
+def merge(config, output: Union[NotifyDict, dict]):
+    for a in config.files.keys():
         ww_files = {
             DataFileHelpers.get_table_name(fp, a, W): fp 
             for fp in DataFileHelpers.get_filepaths(a, W)
@@ -227,13 +239,13 @@ def merge(output: NotifyDict | dict):
         
         ww_gdf['ASSET_OWNER'] = W.COMPANY
 
-        for c in Config.asset_uids:
+        for c in config.asset_uids:
             if c in cww_gdf.columns:
                 cww_gdf[c] = cww_gdf[c].astype(int).astype(str) + '_' + C.COMPANY
             if c in ww_gdf.columns:
                 ww_gdf[c] = ww_gdf[c].astype(str) + '_' + W.COMPANY
 
-        ww_gdf.rename(columns={c2: c1 for c2, c1 in Config.column_map.items() if c2 in ww_gdf.columns}, inplace=True)
+        ww_gdf.rename(columns={c2: c1 for c2, c1 in config.column_map.items() if c2 in ww_gdf.columns}, inplace=True)
 
         if 'PIPE_DIA' in cww_gdf.columns:
             cww_gdf['PIPE_DIA'] = cww_gdf['PIPE_DIA'].apply(FieldsHelpers.dia_to_int).astype(int)
@@ -257,7 +269,7 @@ def merge(output: NotifyDict | dict):
     return output
 
 
-def make_corrections(output: NotifyDict | dict):
+def make_corrections(config, output: Union[NotifyDict, dict]):
     if AssetType.PIPES in output:
         pipes_gdf = output[AssetType.PIPES]
 
@@ -285,7 +297,7 @@ def make_corrections(output: NotifyDict | dict):
     return output
 
 
-def classify_parcels(output: NotifyDict | dict):
+def classify_parcels(config, output: Union[NotifyDict, dict]):
     if AssetType.PARCELS in output and AssetType.BRANCHES in output:
         branches_gdf = output[AssetType.BRANCHES]
         parcels_gdf = output[AssetType.PARCELS]
@@ -308,26 +320,26 @@ def save_file(gdf, filename):
     gdf.to_file(filename, driver="MapInfo File", schema=schema)
 
 
-def save_output(output: NotifyDict | dict):
-    outpaths = [Config.output_template.format(id=id) for id in output]
+def save_output(config: Config, output: Union[NotifyDict, dict]):
+    outpaths = [config.output_template.format(id=id) for id in output]
 
     for id, gdf in output.items():
         save_file(
             gdf=gdf,
-            filename=Config.output_template.format(id=id)
+            filename=config.output_template.format(id=id)
         )
     print(f'{id} saved')
 
     return outpaths
 
 
-def possible_outpaths():
-    possible_ids = list(Config.files.keys()) + ['parcels_unserved', 'parcels']
+def possible_outpaths(config):
+    possible_ids = list(config.files.keys()) + ['parcels_unserved', 'parcels']
 
     outpaths = {
-        id: os.path.getmtime(Config.output_template.format(id=id))
+        id: os.path.getmtime(config.output_template.format(id=id))
         for id in possible_ids
-        if os.path.exists(Config.output_template.format(id=id))
+        if os.path.exists(config.output_template.format(id=id))
     }
 
     return outpaths
@@ -335,11 +347,12 @@ def possible_outpaths():
 
 # example usage
 def run():
+    config = Config()
     timekeeper = TimeKeeper()
     output = NotifyDict(timekeeper) # dict()
 
     func_list = [merge, make_corrections, classify_parcels, save_output]
-    outpaths = reduce(lambda o, func: func(o), func_list, output)
+    outpaths = reduce(lambda o, func: func(config, o), func_list, output)
     print(humanize.naturaldelta(time.time() - timekeeper.start_time))
 
     return outpaths
