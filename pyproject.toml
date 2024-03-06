@@ -7,17 +7,24 @@ packages = [
     {include = "gww_gis_tools", from = "src"}
 ]
 
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib"
+]
+pythonpath = "src"
+
 [tool.poetry.dependencies]
 python = "^3.9"
 pandas = "^2.0.1"
+gdal = {'optional' = true}
+fiona = {'optional' = true}
 geopandas = {'version' = '^2.2.1', 'optional' = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 
 [tool.poetry.extras]
-geopandas = ["fiona", "geopandas"]
-
+geo = ["gdal", "fiona", "geopandas"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
