@@ -4,11 +4,16 @@ from typing import Any, Union
 from functools import reduce
 import os.path
 
-import fiona
 import humanize
 import pandas as pd
-import geopandas as gpd
 
+try:
+    import fiona
+    import geopandas as gpd
+except ImportError:
+    HAS_GPD = False
+else:
+    HAS_GPD = True
 
 class AssetType:
     """ Enum-like class to prevent typos """
