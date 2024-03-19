@@ -1,11 +1,27 @@
-[tool.poetry]
+[project]
 name = "gww-gis-tools"
+authors = [
+    {name = "Timothy Holmes", email = "tim.a.holmes@gmail.com"}
+]
 version = "0.2.0"
 description = ""
-authors = ["Timothy Holmes <tim.a.holmes@gmail.com>"]
-packages = [
-    {include = "gww_gis_tools", from = "src"}
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">= 3.9"
+dependencies = [
+    "pandas==2.2.1"
 ]
+
+[project.optional-dependencies]
+# geometry/GIS data tools
+geo = [
+    "gdal",
+    "fiona",
+    "geopandas",
+    "shapely"
+]
+
+[project.urls]
+Repository = "https://github.com/timothy-holmes/gww_gis_tools.git"
 
 [tool.pytest.ini_options]
 addopts = [
@@ -13,19 +29,4 @@ addopts = [
 ]
 pythonpath = "src"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-pandas = "^2.0.1"
-gdal = {'optional' = true}
-fiona = {'optional' = true}
-geopandas = {'version' = '^2.2.1', 'optional' = true}
 
-[tool.poetry.dev-dependencies]
-pytest = "^5.2"
-
-[tool.poetry.extras]
-geo = ["gdal", "fiona", "geopandas"]
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
