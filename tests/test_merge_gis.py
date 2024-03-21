@@ -1,5 +1,10 @@
-# from gww_gis_tools.merge_gis import __version__
+import gww_gis_tools.merge_gis.merge_sewer as MS
 
 
-# def test_version():
-#     assert __version__ == '0.1.0'
+class TestDummy:
+    def __init__(self):
+        pass
+
+
+class TestExtract:
+    pass

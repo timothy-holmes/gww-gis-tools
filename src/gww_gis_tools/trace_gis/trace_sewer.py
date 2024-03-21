@@ -4,9 +4,11 @@ from typing import Callable, Union
 import inspect
 import json
 
+
 class DIRECTION(Enum):
-    U = 'upstream'
-    D = 'downstream'
+    U = "upstream"
+    D = "downstream"
+
 
 class Graph:
     """
@@ -30,6 +32,7 @@ class Graph:
     def __init__(self, direction: DIRECTION):
         """Specify direction on initialisation"""
         self.direction = direction
+        assert type(self.direction) is DIRECTION
         self.nodes = defaultdict(list)
         self.pipes = defaultdict(list)
 
@@ -42,26 +45,28 @@ class Graph:
     def from_dicts(self, links: list[dict]):
         """Takes a list of dictionaries and add each row as an edge. Returns graph object."""
         for f in links:
-            self.add_edge(f['START_NODE'], f['END_NODE'], f['PIPE_ID'])
+            self.add_edge(f["START_NODE"], f["END_NODE"], f["PIPE_ID"])
         return self
 
     def add_edge(self, start_node, end_node, pipe_id):
         """Add field values for a single feature as an edge. Returns graph object."""
         if self.direction == DIRECTION.U:
-                self.nodes[end_node].append(start_node)
-                self.pipes[end_node].append(pipe_id)
+            self.nodes[end_node].append(start_node)
+            self.pipes[end_node].append(pipe_id)
         elif self.direction == DIRECTION.D:
-                self.nodes[start_node].append(end_node)
-                self.pipes[start_node].append(pipe_id)
+            self.nodes[start_node].append(end_node)
+            self.pipes[start_node].append(pipe_id)
         else:
-            raise ValueError(f"Direction must be type {type(DIRECTION)}")
-        
+            raise NotImplementedError
+
         return self
+
 
 class TraceResult:
     """
     Dataclass-like objects for accessing results of tracing.
     """
+
     def __init__(self, trace_summary, pipes, nodes, end_of_path_nodes):
         self.trace_summary = trace_summary
         self.pipes = pipes
@@ -70,6 +75,7 @@ class TraceResult:
 
     def __repr__(self):
         return f"TraceResult({self.trace_summary['direction']}, {self.trace_summary['start_node']})"
+
 
 class Trace:
     """
@@ -82,6 +88,7 @@ class Trace:
     Methods:
     - trace(first_node): Traces a path through the graph starting from the first node.
     """
+
     def __init__(self, graph, stop_node: Union[Callable, None] = None):
         self.graph = graph
         self.stop_node = stop_node or (lambda x: True)
@@ -113,18 +120,19 @@ class Trace:
 
                 node_queue.extend(next_nodes)
                 pipes_visited.update(next_pipes)
-        
+
         return TraceResult(
             trace_summary={
-                'g_size': len(self.graph.nodes),
-                'direction': self.graph.direction,
-                'start_node': first_node,
-                'stop_node': inspect.getsource(self.stop_node)
+                "g_size": len(self.graph.nodes),
+                "direction": self.graph.direction,
+                "start_node": first_node,
+                "stop_node": inspect.getsource(self.stop_node),
             },
             pipes=pipes_visited,
             nodes=nodes_visited,
-            end_of_path_nodes=end_of_path_nodes
+            end_of_path_nodes=end_of_path_nodes,
         )
+
 
 class ExtendedEncoder(json.JSONEncoder):
     """
@@ -136,7 +144,7 @@ class ExtendedEncoder(json.JSONEncoder):
     """
 
     def default(self, obj):
-        name = ('',type(obj).__name__)
+        name = ("", type(obj).__name__)
 
         try:
             encoder = getattr(self, f"encode_{name[0]}")
@@ -144,7 +152,7 @@ class ExtendedEncoder(json.JSONEncoder):
             super().default(obj)
         else:
             encoded = encoder(obj)
-            encoded["__extended_json_type__"] = '_'.join(name)
+            encoded["__extended_json_type__"] = "_".join(name)
             return encoded
 
     def encode_TraceResult(self, tr) -> dict[str, list]:
