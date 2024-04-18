@@ -61,6 +61,9 @@ class Graph:
 
         return self
 
+    def __hash__(self):
+        return hash((self.nodes, self.pipes))
+
 
 class TraceResult:
     """
@@ -73,8 +76,14 @@ class TraceResult:
         self.nodes = nodes
         self.end_of_path_nodes = end_of_path_nodes
 
+        if "trace_hash" not in self.trace_summary:
+            self.trace_summary["trace_hash"] = hash(self)
+
     def __repr__(self):
         return f"TraceResult({self.trace_summary['direction']}, {self.trace_summary['start_node']})"
+
+    def __hash__(self):
+        return hash((self.pipes, self.nodes, self.end_of_path_nodes))
 
 
 class Trace:
@@ -93,7 +102,7 @@ class Trace:
         self.graph = graph
         self.stop_node = stop_node or (lambda x: True)
 
-    def trace(self, first_node):
+    def trace(self, first_node, trace_name=None):
         """Tranverses graph object (depth-first) and returns a TraceResult containing nodes and pipes visited, and end of path nodes."""
         nodes = self.graph.nodes
         pipes = self.graph.pipes
@@ -123,10 +132,12 @@ class Trace:
 
         return TraceResult(
             trace_summary={
+                "trace_name": trace_name,
                 "g_size": len(self.graph.nodes),
+                "g_hash": hash(self.graph),
                 "direction": self.graph.direction,
                 "start_node": first_node,
-                "stop_node": inspect.getsource(self.stop_node),
+                "stop_node_predicate": inspect.getsource(self.stop_node),
             },
             pipes=pipes_visited,
             nodes=nodes_visited,
