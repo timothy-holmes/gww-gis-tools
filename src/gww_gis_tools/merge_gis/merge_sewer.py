@@ -4,15 +4,16 @@ import os.path
 
 try:
     import geopandas as gpd
-except ImportError:
-    GPD_SUPPORT = False
     import pandas as pd
-
+except ImportError:
+    # GPD_SUPPORT = False
+    # import pandas as pd
     raise NotImplementedError(
         "geopandas not installed. Install with 'conda install -c conda-forge geopandas'"
     )
 else:
-    GPD_SUPPORT = True
+    # GPD_SUPPORT = True
+    pass
 
 from gww_gis_tools.merge_gis.sewer_helpers import (
     Config,
@@ -28,23 +29,23 @@ from gww_gis_tools.merge_gis.sewer_helpers import (
 def merge(config, output: dict):
     for a in config.files.keys():
         ww_files = {
-            DataFileHelpers.get_table_name(fp, a, W): fp
-            for fp in DataFileHelpers.get_filepaths(a, W)
+            DataHelpers.get_table_name(fp, a, W): fp
+            for fp in DataHelpers.get_filepaths(a, W)
         }
-        cww_files = DataFileHelpers.get_filepaths(a, C)
+        cww_files = DataHelpers.get_filepaths(a, C)
 
         if (not len(ww_files)) or (not len(cww_files)):
             print("Skipping", a)
 
         ww_gdfs = [
-            DataFileHelpers.read_file(fp).assign(SRC_TABLE=src)
+            DataHelpers.read_file(fp).assign(SRC_TABLE=src)
             for src, fp in ww_files.items()
         ]
         ww_gdf = gpd.GeoDataFrame(
             pd.concat(ww_gdfs, ignore_index=True), crs=ww_gdfs[0].crs
         )
 
-        cww_gdf = DataFileHelpers.read_file(cww_files[0])
+        cww_gdf = DataHelpers.read_file(cww_files[0])
 
         if "ASSET_OWNER" in cww_gdf.columns:
             cww_owner_mask = cww_gdf[~(cww_gdf["ASSET_OWNER"] == C.COMPANY)]
@@ -86,7 +87,7 @@ def merge(config, output: dict):
     return output
 
 
-def make_corrections(config, output: Union[NotifyDict, dict]):
+def make_corrections(config, output: dict):
     if AssetType.PIPES in output:
         pipes_gdf = output[AssetType.PIPES]
 
@@ -112,7 +113,7 @@ def make_corrections(config, output: Union[NotifyDict, dict]):
     return output
 
 
-def classify_parcels(config, output: Union[NotifyDict, dict]):
+def classify_parcels(config, output: dict):
     if AssetType.PARCELS in output and AssetType.BRANCHES in output:
         branches_gdf = output[AssetType.BRANCHES]
         parcels_gdf = output[AssetType.PARCELS]
@@ -137,7 +138,7 @@ def save_file(gdf, filename):
     gdf.to_file(filename, driver="MapInfo File", schema=schema)
 
 
-def save_output(config: Config, output: Union[NotifyDict, dict]):
+def save_output(config: Config, output: dict):
     outpaths = [config.output_template.format(id=id) for id in output]
 
     for id, gdf in output.items():
@@ -162,7 +163,7 @@ def possible_outpaths(config):
 # example usage
 def run():
     config = Config()
-    output = NotifyDict()  # dict()
+    output = dict()
 
     func_list = [merge, make_corrections, classify_parcels, save_output]
     outpaths = reduce(lambda o, func: func(config, o), func_list, output)

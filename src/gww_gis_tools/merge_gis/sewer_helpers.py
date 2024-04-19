@@ -159,18 +159,6 @@ class Config:
         return outpaths
 
 
-class TimeKeeper:
-    def __init__(self) -> None:
-        self.start_time = time.time()
-        self.time_last_reported = self.start_time
-
-    def get_time_since_last_reported(self):
-        time_since_last_reported = time.time() - self.time_last_reported
-        self.time_last_reported = time.time()
-        # pretty print new_time
-        return humanize.naturaldelta(time_since_last_reported)
-
-
 class DataHelpers:
     @staticmethod
     def get_filepaths(config: Config, asset_type: str, region: str):
