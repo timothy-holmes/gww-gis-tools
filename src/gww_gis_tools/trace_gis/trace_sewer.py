@@ -36,6 +36,9 @@ class Graph:
         self.nodes = defaultdict(list)
         self.pipes = defaultdict(list)
 
+    def __repr__(self):
+        return f"Graph({self.direction}, {len(self.nodes)=})"
+
     def from_gdf(self, links):
         """Takes a (Geo)DataFrame and add each row as an edge. Returns graph object."""
         for f in links.itertuples(index=False):
