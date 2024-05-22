@@ -21,12 +21,11 @@ geo = [
 ]
 
 [project.urls]
-Repository = "https://github.com/timothy-holmes/gww_gis_tools.git"
+repository = "https://github.com/timothy-holmes/gww_gis_tools.git"
 
 [tool.pytest.ini_options]
 addopts = [
     "--import-mode=importlib"
 ]
 pythonpath = "src"
-
-
+testpaths = "tests"

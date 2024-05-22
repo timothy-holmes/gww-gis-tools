@@ -12,7 +12,7 @@ def sample_pipe_dicts(sample_data):
 
 @pytest.fixture
 def sample_pipe_df(sample_data):
-    return pd.DataFrame(sample_data.get("pipes"))
+    return sample_data.get("pipes")
 
 
 def test_sample_df(sample_pipe_df: pd.DataFrame):
@@ -25,9 +25,12 @@ def test_init():
     assert type(g_u.direction) is trace_sewer.DIRECTION
     assert type(g_u.nodes) is defaultdict
     assert type(g_u.pipes) is defaultdict
-    assert type(g_u.nodes.get("random_key")) is list
-    assert type(g_u.nodes.get("another_random_key")) is list
+    assert type(g_u.nodes["random_key"]) is list()
     g_d = trace_sewer.Graph(trace_sewer.DIRECTION.D)
+    assert type(g_d.direction) is trace_sewer.DIRECTION
+    assert type(g_d.nodes) is defaultdict
+    assert type(g_d.pipes) is defaultdict
+    assert type(g_d.nodes["random_key"]) is list()
 
 
 def test_add_edge():
