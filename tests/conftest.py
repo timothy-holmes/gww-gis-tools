@@ -21,9 +21,9 @@ else:
 
 
 def to_gdf(df):
-    if has_geopandas and "geometry" in df.columns:
-        df["geometery"] = df["geometery"].apply(shape)
-        gdf = geopandas.GeoDataFrame(df, geometry="geometery")
+    if has_geopandas and 'geometry' in df.columns:
+        df['geometery'] = df['geometery'].apply(shape)
+        gdf = geopandas.GeoDataFrame(df, geometry='geometery')
     else:
         gdf = df
 
@@ -31,21 +31,21 @@ def to_gdf(df):
     return df
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='session')
 def sample_data():
-    test_mode = os.environ.get("TEST_MODE", "simple")
+    test_mode = os.environ.get('TEST_MODE', 'simple')
 
-    if test_mode in ["simple", "local"]:
+    if test_mode in ['simple', 'local']:
         with open(
-            f"./tests/test_data/trace/{test_mode}/test_data.json", "r"
+            f'./tests/test_data/trace/{test_mode}/test_data.json'
         ) as data_json:
             dfs = {
                 k: to_gdf(pd.DataFrame(v)) for k, v in json.load(data_json).items() if v
             }
-    elif test_mode == "databricks" and in_databricks:
+    elif test_mode == 'databricks' and in_databricks:
         # pyspark queries for each table
         queries = {
-            "pipes": """
+            'pipes': """
                 SELECT * FROM pipe_table
             """,
             # 'nodes': """""",
@@ -54,6 +54,16 @@ def sample_data():
         }
         dfs = {k: to_gdf(spark.query(v).toPandas()) for k, v in queries.items()}
     else:
-        raise NotImplementedError(f"Test mode {test_mode} not implemented")
+        raise NotImplementedError(f'Test mode {test_mode} not implemented')
 
     return dfs
+
+
+@pytest.fixture(scope='session')
+def sample_data_path():
+    test_mode = os.environ.get('TEST_MODE', 'simple')
+
+    if test_mode in ['simple', 'local']:
+        return f'./tests/test_data/trace/{test_mode}/', 'r'
+
+    return './tests/test_data/trace/simple/'

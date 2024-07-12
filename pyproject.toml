@@ -14,10 +14,14 @@ dependencies = [
 [project.optional-dependencies]
 # geometry/GIS data tools
 geo = [
-    "gdal",
+    # "gdal @ file://%USERPROFILE%/Greater Western Water/IP - Spatial - Documents/Input/2. GWW GIS Exports/Existing Assets/Merged Regions/merge_gis/GDAL-3.8.4-cp312-cp312-win_amd64.whl",
     "fiona",
     "geopandas",
     "shapely"
+]
+test = [
+    "pytest",
+    "ruff"
 ]
 
 [project.urls]
@@ -29,3 +33,28 @@ addopts = [
 ]
 pythonpath = "src"
 testpaths = "tests"
+
+[tool.ruff.lint]
+select = ["ALL", "B"]
+ignore = [
+    "ANN101",
+    "ANN102",
+    "COM812",
+    "D211",
+    "D212",
+    "ISC001",
+]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{tests}/*" = ["E402"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+# 5. Use single quotes for non-triple-quoted strings.
+quote-style = "single"

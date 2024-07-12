@@ -1,1 +1,3 @@
-__version__ = "0.1.0"
+"""Merge GIS module."""
+
+__version__ = '0.1.0'

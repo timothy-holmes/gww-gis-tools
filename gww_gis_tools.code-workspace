@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.background": "#ffd7d7", 
+			"titleBar.activeBackground": "#ffd7d7",
+			"statusBar.background": "#ffd7d7"
+		},
+        "[python]": {
+            "editor.defaultFormatter": "charliermarsh.ruff",
+            "editor.codeActionsOnSave": {
+                "source.organizeImports": "explicit",
+                "source.fixAll": "explicit"
+            }
+        },
+	}
+}
