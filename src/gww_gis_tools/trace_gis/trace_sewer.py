@@ -58,7 +58,8 @@ class Graph:
 
         self.nodes: defaultdict[str | int, list] = defaultdict(list)
         self.pipes: defaultdict[str | int, list] = defaultdict(list)
-        self.qgis_fids: dict = {}
+        self.qgis_fids: dict[int | str, int] = {} # pipes only
+        self.qgis_parcel_fids: defaultdict[str | int, list] = defaultdict(list)
 
     def __repr__(self) -> str:
         """Return a string representation of the graph."""
@@ -85,7 +86,7 @@ class Graph:
         start_node: str | int,
         end_node: str | int,
         pipe_id: str | int,
-        qgis_fid: int | None = None
+        qgis_fid: int | None = None,
     ) -> Self:
         """Add field values for a single feature as an edge. Returns graph object."""
         if self.direction == DIRECTION.U:
@@ -97,6 +98,16 @@ class Graph:
 
         if qgis_fid:
             self.qgis_fids[pipe_id] = qgis_fid
+
+        return self
+
+    def add_qgis_parcel_ids(
+        self,
+        branches_info: dict[int | str, int],
+    ) -> Self:
+        """Adds info from branches to enable selecting parcels from pipe ids."""
+        for pipe_id, parcel_fid in branches_info.items():
+            self.qgis_parcel_fids[pipe_id].append(parcel_fid)
 
         return self
 
