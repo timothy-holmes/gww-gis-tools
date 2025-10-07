@@ -161,6 +161,8 @@ class Config:
 
     column_map = MappingProxyType(
         {
+            # all (probably)
+            'DATE_MADE': 'CONSTRUCTION_DATE',
             # pipes
             'ECOVELEV': 'END_COVELEV',
             'SCOVELEV': 'START_COVELEV',
@@ -190,9 +192,9 @@ class Config:
     def possible_outpaths(self) -> Mapping[AssetType, float]:
         """Get the possible output paths."""
         return {
-            asset_type: Path(self.output_template.format(id=id)).stat().st_mtime
+            asset_type: Path(self.output_template.format(id=asset_type.value)).stat().st_mtime
             for asset_type in self.files
-            if Path(self.output_template.format(id=id)).exists()
+            if Path(self.output_template.format(id=asset_type.value)).exists()
         }
 
     def get_filepaths(self, asset_type: AssetType, region: C | W) -> list[str]:
@@ -292,7 +294,8 @@ class DataHelpers:
         except GEOSException as e:
             if e.args == ('IllegalArgumentException: Points of LinearRing do not form a closed linestring',):
                 return cls.load_bad_polygon_file(*args, **kwargs)
-            raise Exception(f'Unknown error {e.args}') from e
+            print(f'GEOSException, {e.args}', f'{args=}, {kwargs=}')
+            raise GEOSException(f'Unknown error {e.args}') from e
 
 
 class FieldsHelpers:

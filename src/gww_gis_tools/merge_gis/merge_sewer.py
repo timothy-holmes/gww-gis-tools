@@ -1,6 +1,9 @@
 """Merge Sewer Module."""
 
+from datetime import datetime
 from functools import reduce
+
+from pandas.errors import InvalidIndexError
 
 try:
     import geopandas as gpd  # pyright: ignore[reportMissingImports]
@@ -22,7 +25,6 @@ from gww_gis_tools.merge_gis.sewer_helpers import (
 
 def merge(config: Config, output: dict) -> dict[AssetType, gpd.GeoDataFrame]:
     """Merge."""
-    # TODO @timothy-holmes: this loop is convoluted, but it works # noqa: TD003, FIX002
     for a in config.files:  # a == AssetType
         # get file paths
         ww_files = {
@@ -31,8 +33,8 @@ def merge(config: Config, output: dict) -> dict[AssetType, gpd.GeoDataFrame]:
         }
         cww_files = config.get_filepaths(a, C)  # pyright: ignore[reportArgumentType]
 
-        if (not len(ww_files)) or (not len(cww_files)):
-            pass
+        if not ww_files or not cww_files:
+            continue
 
         # load files into single gdf for each company
         ww_gdfs = [
@@ -40,55 +42,102 @@ def merge(config: Config, output: dict) -> dict[AssetType, gpd.GeoDataFrame]:
             for src, fp in ww_files.items()
         ]
         ww_gdf = gpd.GeoDataFrame(
-            pd.concat(ww_gdfs, ignore_index=True),
+            pd.concat(ww_gdfs, axis=0, ignore_index=True),
             crs=ww_gdfs[0].crs,
-        )
+        ).reset_index(drop=True)
+
         cww_gdf = DataHelpers.read_file(cww_files[0])
 
-        #  drop WW abandonded assets
+
+        #  drop WW abandoned assets
         if 'OP_STATUS' in ww_gdf.columns:
             OP_STATUS_ABANDONED = 3  # noqa: N806
+            OP_STATUS_INACTIVE = 2  # noqa: N806
             abandoned_where = ww_gdf['OP_STATUS'] == OP_STATUS_ABANDONED
-            ww_gdf = ww_gdf[~abandoned_where]
+            inactive_where = ww_gdf['OP_STATUS'] == OP_STATUS_INACTIVE
+            ww_gdf = ww_gdf.loc[~(abandoned_where | inactive_where), :]
 
         # set ASSET_OWNER
         if 'ASSET_OWNER' in cww_gdf.columns:
-            cww_owner_mask = ~(cww_gdf['ASSET_OWNER'] == C.COMPANY)
-            cww_gdf.loc[cww_owner_mask, 'ASSET_OWNER'] = f'NOT_{C.COMPANY}'
-            ww_gdf['ASSET_OWNER'] = W.COMPANY
+            cww_gdf['ASSET_OWNER'] = cww_gdf[c].astype(str) + f'_{C.COMPANY.value}'
+            ww_gdf['ASSET_OWNER'] = W.COMPANY.value
 
         for c in config.asset_uids:
             if c in cww_gdf.columns:
-                cww_gdf[c] = cww_gdf[c].astype(int).astype(str) + f'_{C.COMPANY}'
+                cww_gdf[c] = cww_gdf[c].astype(int).astype(str) + f'_{C.COMPANY.value}'
             if c in ww_gdf.columns:
-                ww_gdf[c] = ww_gdf[c].astype(str) + f'_{W.COMPANY}'
+                ww_gdf[c] = ww_gdf[c].astype(str) + f'_{W.COMPANY.value}'
 
-        ww_gdf = ww_gdf.rename(
-            columns={
-                c2: c1 for c2, c1 in config.column_map.items() if c2 in ww_gdf.columns
-            },
-        )
+        if 'NODE_REF' in ww_gdf.columns:
+            ww_gdf = ww_gdf.drop(columns=['NODE_REF'])
+        ww_gdf.columns = [config.column_map.get(c) or c for c in ww_gdf.columns]
 
         if 'PIPE_DIA' in cww_gdf.columns:
             cww_gdf['PIPE_DIA'] = (
                 cww_gdf['PIPE_DIA']
                 .apply(FieldsHelpers.dia_str_to_dia_int)
-                # .apply(FieldsHelpers.dia_str_to_height_width)
-                # .apply(FieldsHelpers.height_width_to_dia)
                 .astype(int)
             )
-            cww_gdf = cww_gdf.drop(columns='PIPE_DIA')
 
         fields = FieldsHelpers.intersect(cww_gdf, ww_gdf)
 
+        # handle datetime columns
+        DATE_FORMAT = '%Y-%m-%d'
+
+        for c in cww_gdf.columns:
+            if '_DATE' in c or 'DATE_' in c:
+                dt_col = pd.to_datetime(
+                    cww_gdf[c],
+                    format='mixed',
+                    dayfirst=True,
+                    errors='coerce',
+                )
+                bad_date_index = dt_col.isna()
+                cww_gdf[c] = dt_col
+                cww_gdf.loc[bad_date_index, c] = pd.Timestamp.max
+                cww_gdf[c] = cww_gdf[c].apply(
+                    lambda x, dt_format=DATE_FORMAT: datetime.strftime(x, dt_format)
+                )
+                print(f'CWW GDF col {c} contained {bad_date_index.sum()} bad dates')
+
+        for c in ww_gdf.columns:
+            if '_DATE' in c or 'DATE_' in c:
+                dt_col = pd.to_datetime(
+                    ww_gdf[c],
+                    format='mixed',
+                    dayfirst=True,
+                    errors='coerce',
+                )
+                bad_date_index = dt_col.isna()
+                ww_gdf[c] = dt_col
+                ww_gdf.loc[bad_date_index, c] = pd.Timestamp.max
+                ww_gdf[c] = ww_gdf[c].apply(
+                    lambda x, dt_format=DATE_FORMAT: datetime.strftime(x, dt_format)
+                )
+                print(f'WW GDF {c} col contained {bad_date_index.sum()} bad dates')
+
         # concat C and W
         crs = cww_gdf.crs
-        ww_gdf.to_crs(crs, inplace=True)
+        ww_gdf = ww_gdf.to_crs(crs)
+        gdfs = [
+            cww_gdf[fields].reset_index(drop=True),
+            ww_gdf[fields].reset_index(drop=True)
+        ]
 
-        output[a] = gpd.GeoDataFrame(
-            pd.concat([cww_gdf[fields], ww_gdf[fields]], ignore_index=True),
-            crs=crs,
-        )
+        try:
+            # Check for unique indices before concatenation
+            if not gdfs[0].index.is_unique or not gdfs[1].index.is_unique:
+                raise ValueError("Indices are not unique. Ensure data frames have unique indices.")
+
+            gdfs = pd.concat(gdfs, axis=0, ignore_index=True)
+            output[a] = gpd.GeoDataFrame(gdfs, crs=crs)
+        except InvalidIndexError as e:
+            print('fields', fields)
+            print(
+                list(gdfs[0].columns), list(gdfs[1].columns)
+            )
+            print(gdfs[0].index.is_unique, gdfs[1].index.is_unique)
+            raise e
 
     return output
 
@@ -140,19 +189,24 @@ def save_file(gdf: gpd.GeoDataFrame, filename: str) -> None:
     # fix for MapInfo layers with Int64 field type
     # ordinarily this is inferred within gpd.to_file()
     schema = gpd.io.file.infer_schema(gdf)
+
     for col, dtype in schema['properties'].items():
+        # force int32 field types
         if dtype in ('int', 'int64'):
             schema['properties'][col] = 'int32'
+        # coerce date field
+        if col.endswith('_DATE'):
+            schema['properties'][col] = 'date'
 
-    gdf.to_file(filename, driver='MapInfo File', schema=schema)
+    gdf.to_file(filename, engine='fiona', driver='MapInfo File', schema=schema)
 
 
 def save_output(config: Config, output: dict) -> list[str]:
     """Save output."""
-    outpaths = [config.output_template.format(id=asset_type) for asset_type in output]
+    outpaths = [config.output_template.format(id=asset_type.value) for asset_type in output]
 
     for asset_type, gdf in output.items():
-        save_file(gdf=gdf, filename=config.output_template.format(id=asset_type))
+        save_file(gdf=gdf, filename=config.output_template.format(id=asset_type.value))
 
     return outpaths
 

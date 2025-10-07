@@ -65,10 +65,16 @@ class Graph:
         """Return a string representation of the graph."""
         return f'Graph({self.direction}, {len(self.nodes)=})'
 
-    def from_gdf(self, links: gpd.GeoDataFrame) -> Self:
+    def from_gdf(self, links: gpd.GeoDataFrame, start_id: str = 'START_NODE', end_id: str = 'END_NODE', asset_id: str = '') -> Self:
         """Use a (Geo)DataFrame to add each row as an edge. Returns graph object."""
-        for f in links.itertuples(index=False):
-            self.add_edge(f.START_NODE, f.END_NODE, f.PIPE_ID)
+        if asset_id:
+            edges = zip(links[start_id], links[end_id], links[asset_id])
+        else:
+            edges = zip(links[start_id], links[end_id], range(links.shape[0]))
+
+        for edge in edges:
+            self.add_edge(*edge)
+
         return self
 
     def from_dicts(self, links: list[dict]) -> Self:
@@ -162,11 +168,12 @@ class Trace:
     - trace(first_node): Traces a path through the graph starting from the first node.
     """
 
-    def __init__(self, graph: Graph, stop_node: Callable | None = None) -> None:
+    def __init__(self, graph: Graph, stop_node: Callable | None = None, stop_pipes: list | set = []) -> None:
         """Initialise Trace."""
         self.graph = graph
-        self.stop_node = stop_node or (lambda x: True) # noqa: ARG005
-
+        self.stop_node = stop_node or (lambda x: False) # noqa: ARG005
+        self.stop_pipes = set(stop_pipes)
+    
     def trace(
         self,
         first_node: str | int,
@@ -182,6 +189,7 @@ class Trace:
         nodes = self.graph.nodes
         pipes = self.graph.pipes
 
+        last_node = None
         node_queue = [first_node]
         pipes_visited = set()
         nodes_visited = set()
@@ -190,12 +198,22 @@ class Trace:
         while node_queue:
             next_node = node_queue.pop()
 
-            if not self.stop_node(next_node):
+            if self.stop_node(next_node):
                 nodes_visited.add(next_node)
                 end_of_path_nodes.add(next_node)
-                break
+                continue
+
+            is_stop_pipe = any(
+                sp in pipes_visited
+                for sp in self.stop_pipes
+            )
+            if is_stop_pipe:
+                if last_node is not None:
+                    end_of_path_nodes.add(last_node)
+                continue
 
             if next_node not in nodes_visited:
+                last_node = next_node
                 nodes_visited.add(next_node)
                 next_nodes = nodes[next_node]
                 next_pipes = pipes[next_node]

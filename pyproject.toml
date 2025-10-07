@@ -3,7 +3,7 @@ name = "gww-gis-tools"
 authors = [
     {name = "Timothy Holmes", email = "tim.a.holmes@gmail.com"}
 ]
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">= 3.9"
