@@ -14,7 +14,6 @@ dependencies = [
 [project.optional-dependencies]
 # geometry/GIS data tools
 geo = [
-    # "gdal @ file://%USERPROFILE%/Greater Western Water/IP - Spatial - Documents/Input/2. GWW GIS Exports/Existing Assets/Merged Regions/merge_gis/GDAL-3.8.4-cp312-cp312-win_amd64.whl",
     "fiona",
     "geopandas",
     "shapely"
