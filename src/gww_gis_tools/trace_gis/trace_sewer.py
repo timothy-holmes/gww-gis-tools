@@ -32,23 +32,28 @@ class Graph:
     Args:
     ----
     - direction: The direction of the graph
-        (either 'U' for undirected or 'D' for directed).
+        (either 'U' for upstream or 'D' for downstream).
 
     Attributes:
     ----------
     - direction: The direction of the graph.
-    - nodes: A dictionary of nodes and their adjacent nodes.
+    - nodes: A dictionary of nodes and their adjacent nodes (in direction of graph).
     - pipes: A dictionary of nodes and the pipes associated with them.
 
     Methods:
     -------
-    - _validate_direction(direction): Validates the input direction.
     - from_gdf(links: geopandas.GeoDataFrame | pandas.DataFrame):
         Converts a (Geo)DataFrame to a graph by adding edges.
     - from_dicts(links: list[dict]):
         Converts a list of dictionaries to a graph by adding edges.
     - add_edge(start_node, end_node, pipe_id):
         Adds an edge to the graph based on the direction.
+    - add_qgis_parcel_ids(branches_info: dict[int | str, int]):
+        Adds info from branches to enable selecting parcels from pipe ids.
+    - to_file(filename: str):
+        Writes the graph object to a file in JSON format.
+    - from_file(filename: str):
+        Reads a graph object from a JSON file and returns it.
 
     """
 
