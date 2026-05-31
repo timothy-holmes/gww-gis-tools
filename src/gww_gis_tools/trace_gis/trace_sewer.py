@@ -178,7 +178,7 @@ class Trace:
         self.graph = graph
         self.stop_node = stop_node or (lambda x: False) # noqa: ARG005
         self.stop_pipes = set(stop_pipes)
-    
+
     def trace(
         self,
         first_node: str | int,
@@ -343,7 +343,7 @@ class ExtendedDecoder(json.JSONDecoder):
             self.object_hook(obj['__dict__'])
         )
 
-    def _decode_type(self, obj: dict) -> type:  # noqa: N802
+    def _decode_type(self, obj: dict) -> type:
         possible_types = {
             type(getattr(builtins,b)).__name__: getattr(builtins,b)
             for b in dir(builtins)
@@ -364,5 +364,5 @@ class ExtendedDecoder(json.JSONDecoder):
 
 
 if __name__ == '__main__':
-    with open(r"C:/Users/holmest1/Greater Western Water/IP - Planning(Local) - Sewer/4. General/System Schematic/v2/data\\622d700622e88e2f.json") as jf:
+    with open(r'C:/Users/holmest1/Greater Western Water/IP - Planning(Local) - Sewer/4. General/System Schematic/v2/data\\622d700622e88e2f.json') as jf:
         j = json.load(jf, cls=ExtendedDecoder)

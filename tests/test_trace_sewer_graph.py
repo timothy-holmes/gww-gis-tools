@@ -3,15 +3,16 @@ from collections import defaultdict
 
 import pandas as pd
 import pytest
+
 from gww_gis_tools.trace_gis import trace_sewer
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_pipe_dicts(sample_data):
     return sample_data.get('pipes')
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_pipe_df(sample_data):
     return sample_data.get('pipes')
 

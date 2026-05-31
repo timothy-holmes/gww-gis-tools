@@ -209,7 +209,7 @@ class DataHelpers:
     def get_table_name(filepath: str, asset_type: AssetType, region: C | W) -> str:
         """Missing docstring."""
         if (asset_type, region) == (AssetType.PIPES, W):
-            return filepath.split('\\')[-1][:-4]
+            return filepath.rsplit('\\', maxsplit=1)[-1][:-4]
         return filepath
 
     @staticmethod

@@ -127,7 +127,7 @@ def merge(config: Config, output: dict) -> dict[AssetType, gpd.GeoDataFrame]:
         try:
             # Check for unique indices before concatenation
             if not gdfs[0].index.is_unique or not gdfs[1].index.is_unique:
-                raise ValueError("Indices are not unique. Ensure data frames have unique indices.")
+                raise ValueError('Indices are not unique. Ensure data frames have unique indices.')
 
             gdfs = pd.concat(gdfs, axis=0, ignore_index=True)
             output[a] = gpd.GeoDataFrame(gdfs, crs=crs)
